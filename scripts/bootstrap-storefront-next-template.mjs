@@ -31,12 +31,12 @@ if (wantsHelp) {
 }
 
 const fileMappings = [
-    ['assets/template-bootstrap/src/config/branding-presets.ts', 'src/config/branding-presets.ts'],
-    ['assets/template-bootstrap/src/routes/_app._index.tsx', 'src/routes/_app._index.tsx'],
-    ['assets/template-bootstrap/src/components/header/index.tsx', 'src/components/header/index.tsx'],
-    ['assets/template-bootstrap/src/root.tsx', 'src/root.tsx'],
-    ['assets/template-bootstrap/src/app.css', 'src/app.css'],
-    ['assets/template-bootstrap/.env.default', '.env.default'],
+    ['src/config/branding-presets.ts', 'src/config/branding-presets.ts'],
+    ['src/routes/home-page.tsx', 'src/routes/_app._index.tsx'],
+    ['src/components/header/index.tsx', 'src/components/header/index.tsx'],
+    ['src/root.tsx', 'src/root.tsx'],
+    ['src/app.css', 'src/app.css'],
+    ['.env.default', '.env.default'],
 ];
 
 const initialAudit = runAudit(targetDir);
@@ -75,8 +75,9 @@ if (!wantsForce) {
 const copied = [];
 
 for (const [assetRelative, targetRelative] of fileMappings) {
-    const sourcePath = path.join(skillRoot, assetRelative);
+    const sourcePath = path.join(assetRoot, assetRelative);
     const destinationPath = path.join(targetDir, targetRelative);
+    await assertBundledAssetExists(sourcePath, assetRelative);
     await fs.mkdir(path.dirname(destinationPath), { recursive: true });
     await fs.copyFile(sourcePath, destinationPath);
     copied.push(targetRelative);
@@ -118,34 +119,53 @@ function runAudit(targetPath) {
     }
 }
 
+async function assertBundledAssetExists(sourcePath, assetRelative) {
+    try {
+        await fs.access(sourcePath);
+    } catch (error) {
+        if (error && typeof error === 'object' && 'code' in error && error.code === 'ENOENT') {
+            throw new Error(
+                `Missing bundled bootstrap asset "${assetRelative}" inside the installed storefront-branding skill at ${assetRoot}. Reinstall or update the skill and rerun the bootstrap.`
+            );
+        }
+        throw error;
+    }
+}
+
 async function inspectStockTemplate(targetPath) {
     const checks = [
         {
             file: 'src/config/branding-presets.ts',
             expectMissing: true,
+            assetRelative: 'src/config/branding-presets.ts',
         },
         {
             file: 'src/routes/_app._index.tsx',
+            assetRelative: 'src/routes/home-page.tsx',
             patterns: [/useTranslation\('home'\)/, /hero-cube\.webp/, /new-arrivals\.webp/],
             forbidden: [/getBrandingPreset/, /useConfig\(/],
         },
         {
             file: 'src/components/header/index.tsx',
+            assetRelative: 'src/components/header/index.tsx',
             patterns: [/useTranslation\('header'\)/, /market-logo\.svg/],
             forbidden: [/getBrandImagePath/, /useConfig\(/],
         },
         {
             file: 'src/root.tsx',
+            assetRelative: 'src/root.tsx',
             patterns: [/NextGen PWA Kit Store/, /Welcome to our web store for high performers!/],
             forbidden: [/BRANDING_PRESETS/, /data-brand=\{brandId\}/],
         },
         {
             file: 'src/app.css',
+            assetRelative: 'src/app.css',
             patterns: [/:\s*root,/],
             forbidden: [/:root\[data-brand='default'\]/],
         },
         {
             file: '.env.default',
+            assetRelative: '.env.default',
             patterns: [/MRT_PROJECT=/, /PUBLIC__app__commerce__api__clientId=/],
             forbidden: [/PUBLIC__app__global__branding__name=/],
         },
@@ -158,12 +178,20 @@ async function inspectStockTemplate(targetPath) {
 
         if (check.expectMissing) {
             try {
-                await fs.access(filePath);
-                details.push({
-                    file: check.file,
-                    ok: false,
-                    reason: 'expected file to be absent in the stock template',
-                });
+                const source = await fs.readFile(filePath, 'utf8');
+                if (await matchesBundledAsset(source, check.assetRelative)) {
+                    details.push({
+                        file: check.file,
+                        ok: true,
+                        reason: 'already matches bundled bootstrap asset',
+                    });
+                } else {
+                    details.push({
+                        file: check.file,
+                        ok: false,
+                        reason: 'expected file to be absent in the stock template',
+                    });
+                }
             } catch (error) {
                 if (error && typeof error === 'object' && 'code' in error && error.code === 'ENOENT') {
                     details.push({
@@ -191,6 +219,15 @@ async function inspectStockTemplate(targetPath) {
                 continue;
             }
             throw error;
+        }
+
+        if (await matchesBundledAsset(source, check.assetRelative)) {
+            details.push({
+                file: check.file,
+                ok: true,
+                reason: 'already matches bundled bootstrap asset',
+            });
+            continue;
         }
 
         const missingPattern = (check.patterns ?? []).find((pattern) => !pattern.test(source));
@@ -224,6 +261,24 @@ async function inspectStockTemplate(targetPath) {
         ok: details.every((detail) => detail.ok),
         details,
     };
+}
+
+async function matchesBundledAsset(targetSource, assetRelative) {
+    if (!assetRelative) {
+        return false;
+    }
+
+    const sourcePath = path.join(assetRoot, assetRelative);
+
+    try {
+        const assetSource = await fs.readFile(sourcePath, 'utf8');
+        return targetSource === assetSource;
+    } catch (error) {
+        if (error && typeof error === 'object' && 'code' in error && error.code === 'ENOENT') {
+            return false;
+        }
+        throw error;
+    }
 }
 
 function writeSummary(summary) {
