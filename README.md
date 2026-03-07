@@ -21,14 +21,26 @@ The bundled crawler installs its own pinned npm dependency on first run if `scri
 
 ## Install The Skill
 
-From the root of your Storefront Next project:
+Recommended install with the `skills` CLI from the root of your Storefront Next project:
+
+```bash
+npx skills add https://github.com/davidsiguenza/cc-b2c-sfnext-brand-demo -a codex
+```
+
+For Codex, project-scoped installs go into `.agents/skills/` by default, so this makes the skill available inside the current storefront repo.
+
+This repository exposes a single skill from the repo root, so `--skill storefront-branding` is not required. If you prefer copied files instead of symlinks, use:
+
+```bash
+npx skills add https://github.com/davidsiguenza/cc-b2c-sfnext-brand-demo -a codex --copy
+```
+
+Manual fallback:
 
 ```bash
 mkdir -p .agents/skills
 git clone https://github.com/davidsiguenza/cc-b2c-sfnext-brand-demo.git .agents/skills/storefront-branding
 ```
-
-If you already have the folder locally, copy it into `.agents/skills/storefront-branding`.
 
 ## End-To-End Flow
 
