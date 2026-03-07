@@ -1,0 +1,4 @@
+interface:
+  display_name: "Storefront Branding"
+  short_description: "Run the guided review-first branded demo flow for Storefront Next"
+  default_prompt: "Use $storefront-branding to create or refine a branded storefront demo from a customer URL, start a localhost review session, iterate with preview overrides, and apply the final branding only after approval."
