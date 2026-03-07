@@ -12,6 +12,7 @@ Use this skill to run the branded demo flow for a Storefront Next project and to
 This skill is self-contained:
 
 - `scripts/webcrawler/` vendors the crawler/runtime used by the preview and apply flow. If `node_modules` is absent, `scripts/webcrawler/scripts/run-webcrawler.sh` installs the pinned dependency set from `package-lock.json` on first run.
+- `scripts/bootstrap-storefront-next-template.mjs` bootstraps the required branding hooks into a clean `storefront-next-template` clone.
 - `references/branded-demo-playbook.md` contains the agent-facing version of the branded demo workflow that previously lived only in repo docs.
 - `references/storefront-next-template-bootstrap.md` explains how to wire a clean `storefront-next-template` clone before running the crawler.
 - `references/storefront-next-hooks.md` defines the hook contract that the workflow expects.
@@ -32,7 +33,13 @@ node ./.agents/skills/storefront-branding/scripts/audit-storefront-next.mjs [tar
 ```
 
    - Confirm these hook points exist and are wired for branding: `src/config/branding-presets.ts`, `src/app.css`, `src/root.tsx`, `src/routes/_app._index.tsx`, `src/components/header/index.tsx`, and `PUBLIC__app__global__branding__name` in `.env.default` or `.env`.
-   - If the audit fails for a clean `storefront-next-template`, read `references/storefront-next-template-bootstrap.md`, copy `assets/template-bootstrap/src/config/branding-presets.ts` into the target repo, patch the remaining files, and rerun the audit.
+   - If the audit fails for a clean `storefront-next-template`, run:
+
+```bash
+node ./.agents/skills/storefront-branding/scripts/bootstrap-storefront-next-template.mjs [target-path]
+```
+
+   - The bootstrap script copies the bundled template-ready files, reruns the audit, and exits non-zero if the repo does not still look like the stock template. Use `--force` only when you intentionally want to overwrite those template files.
    - If the repo is not a stock template, use `references/storefront-next-hooks.md` and adapt the equivalent files rather than forcing exact paths.
    - Do not depend on repo-level docs to understand or complete the integration.
 

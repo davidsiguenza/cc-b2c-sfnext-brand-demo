@@ -94,7 +94,7 @@ const summary = {
     nextStep:
         missing.length === 0
             ? null
-            : `Read ${bootstrapRef} and install the missing hooks before running the crawler workflow.`,
+            : `If this is a clean storefront-next-template clone, run node ./.agents/skills/storefront-branding/scripts/bootstrap-storefront-next-template.mjs${targetDir === process.cwd() ? '' : ` ${targetDir}`} and rerun the audit. Otherwise read ${bootstrapRef} and adapt the same hooks manually.`,
 };
 
 if (wantsJson) {

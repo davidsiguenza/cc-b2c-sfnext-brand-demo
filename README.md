@@ -56,23 +56,24 @@ node ./.agents/skills/storefront-branding/scripts/audit-storefront-next.mjs
 
 If the audit passes, continue to the guided review flow.
 
-If the audit fails on a clean `storefront-next-template`, bootstrap the required hooks:
-
-1. Copy the bundled starter preset:
+If the audit fails on a clean `storefront-next-template`, bootstrap the required hooks in one command:
 
 ```bash
-cp ./.agents/skills/storefront-branding/assets/template-bootstrap/src/config/branding-presets.ts \
-  src/config/branding-presets.ts
+node ./.agents/skills/storefront-branding/scripts/bootstrap-storefront-next-template.mjs
 ```
 
-2. Patch the remaining files described in `references/storefront-next-template-bootstrap.md`:
-   - `src/routes/_app._index.tsx`
-   - `src/components/header/index.tsx`
-   - `src/root.tsx`
-   - `src/app.css`
-   - `.env.default`
+The bootstrap script copies the bundled template-ready files into:
 
-3. Run the audit again.
+- `src/config/branding-presets.ts`
+- `src/routes/_app._index.tsx`
+- `src/components/header/index.tsx`
+- `src/root.tsx`
+- `src/app.css`
+- `.env.default`
+
+Then it reruns the audit and exits non-zero if the repo does not still look like the stock template. Use `--force` only when you intentionally want to overwrite those files.
+
+If your repo is not a clean stock template, use `references/storefront-next-template-bootstrap.md` and `references/storefront-next-hooks.md` as the manual integration guide instead of running the automated overwrite.
 
 ## 2. Start The Guided Review UI
 

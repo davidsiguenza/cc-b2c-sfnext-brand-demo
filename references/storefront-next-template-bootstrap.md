@@ -27,7 +27,54 @@ No extra default hero or content images are required for bootstrap. The bundled 
 - `/images/hero.png`
 - `/images/hero-new-arrivals.webp`
 
-## Bootstrap Sequence
+## Automated Bootstrap
+
+Run this from the storefront repo root:
+
+```bash
+node ./.agents/skills/storefront-branding/scripts/bootstrap-storefront-next-template.mjs
+```
+
+Or target another repo explicitly:
+
+```bash
+node ./.agents/skills/storefront-branding/scripts/bootstrap-storefront-next-template.mjs /absolute/path/to/storefront-next-template
+```
+
+The script:
+
+1. Runs the branding audit.
+2. Verifies the target still looks like the stock `storefront-next-template`.
+3. Copies the bundled bootstrap-ready files into place.
+4. Reruns the audit and exits non-zero if the hooks are still incomplete.
+
+Use `--force` only when you intentionally want to overwrite those template files.
+
+## What The Script Copies
+
+The bootstrap currently copies these files from the skill bundle into the target repo:
+
+```bash
+src/config/branding-presets.ts
+src/routes/_app._index.tsx
+src/components/header/index.tsx
+src/root.tsx
+src/app.css
+.env.default
+```
+
+## Installed Behavior
+
+- `src/config/branding-presets.ts` comes from the bundled starter preset.
+- `src/routes/_app._index.tsx` reads homepage copy, imagery, and CTA links from the active brand preset.
+- `src/components/header/index.tsx` resolves the active logo from the preset and falls back to the brand display name if the image fails to load.
+- `src/root.tsx` sets `data-brand` on `<html>` and uses preset-driven `<title>` plus `<meta name="description">`.
+- `src/app.css` keeps the stock palette and adds a default `:root[data-brand='default']` block so generated brand CSS can append later.
+- `.env.default` gains `PUBLIC__app__global__branding__name=default`.
+
+## Manual Fallback
+
+If the target repo is not a clean stock template, do not run the automated bootstrap unless you explicitly want to overwrite those files. Instead adapt the equivalent hooks manually:
 
 1. Copy the bundled starter file into the target repo:
 
