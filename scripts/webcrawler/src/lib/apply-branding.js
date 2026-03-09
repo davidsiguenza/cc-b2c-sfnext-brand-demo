@@ -1,19 +1,107 @@
+import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { readTextFile, writeTextFile } from './fs.js';
 import { buildCssBlock, buildEnvSnippet, buildPresetEntry } from './templates.js';
 
 export async function applyBranding(analysis, targetProjectPath, options = {}) {
+  const preparedAnalysis = await prepareAnalysisForApply(analysis, targetProjectPath);
   const brandingPath = path.join(targetProjectPath, 'src/config/branding-presets.ts');
   const cssPath = path.join(targetProjectPath, 'src/app.css');
   const envPath = path.join(targetProjectPath, '.env');
 
-  const presetEntry = buildPresetEntry(analysis);
-  const cssBlock = buildCssBlock(analysis);
-  const envLine = buildEnvSnippet(analysis);
+  const presetEntry = buildPresetEntry(preparedAnalysis);
+  const cssBlock = buildCssBlock(preparedAnalysis);
+  const envLine = buildEnvSnippet(preparedAnalysis);
 
-  await patchBrandingPresets(brandingPath, analysis.brandId, presetEntry, options);
-  await patchCss(cssPath, analysis.brandId, cssBlock, options);
+  await patchBrandingPresets(brandingPath, preparedAnalysis.brandId, presetEntry, options);
+  await patchCss(cssPath, preparedAnalysis.brandId, cssBlock, options);
   await patchEnv(envPath, envLine);
+}
+
+async function prepareAnalysisForApply(analysis, targetProjectPath) {
+  const prepared = JSON.parse(JSON.stringify(analysis));
+  const localizedLogoPath = await localizeRemoteLogo(prepared, targetProjectPath);
+
+  if (localizedLogoPath) {
+    prepared.images = {
+      ...(prepared.images || {}),
+      logo: localizedLogoPath,
+    };
+  }
+
+  return prepared;
+}
+
+async function localizeRemoteLogo(analysis, targetProjectPath) {
+  const logoUrl = analysis?.images?.logo;
+
+  if (!logoUrl || !/^https?:\/\//i.test(logoUrl)) {
+    return logoUrl || null;
+  }
+
+  try {
+    const response = await fetch(logoUrl, {
+      headers: {
+        'user-agent':
+          'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Logo request failed with status ${response.status} ${response.statusText}`);
+    }
+
+    const extension = resolveLogoExtension(logoUrl, response.headers.get('content-type'));
+    const relativePath = `/images/brands/${analysis.brandId}/logo${extension}`;
+    const filePath = path.join(targetProjectPath, 'public', relativePath.replace(/^\//, ''));
+    const buffer = Buffer.from(await response.arrayBuffer());
+
+    await mkdir(path.dirname(filePath), { recursive: true });
+    await writeFile(filePath, buffer);
+
+    return relativePath;
+  } catch {
+    return logoUrl;
+  }
+}
+
+function resolveLogoExtension(logoUrl, contentType) {
+  const pathname = safeUrlPathname(logoUrl);
+  const extension = path.extname(pathname).toLowerCase();
+
+  if (extension) {
+    return extension;
+  }
+
+  if (!contentType) {
+    return '.svg';
+  }
+
+  if (contentType.includes('svg')) {
+    return '.svg';
+  }
+
+  if (contentType.includes('png')) {
+    return '.png';
+  }
+
+  if (contentType.includes('webp')) {
+    return '.webp';
+  }
+
+  if (contentType.includes('jpeg') || contentType.includes('jpg')) {
+    return '.jpg';
+  }
+
+  return '.img';
+}
+
+function safeUrlPathname(value) {
+  try {
+    return new URL(value).pathname;
+  } catch {
+    return value;
+  }
 }
 
 async function patchBrandingPresets(filePath, brandId, presetEntry, options) {

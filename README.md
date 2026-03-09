@@ -104,6 +104,7 @@ The command will:
 - create `.webcrawler/<brand-id>/overrides.json`
 - generate the first preview proposal
 - start a local review server, usually on `http://127.0.0.1:4173/preview.html`
+- enable `Save overrides.json`, `Regenerate preview`, and `Apply to storefront` directly in the browser UI
 
 It also writes these artifacts under `.webcrawler/<brand-id>/`:
 
@@ -123,6 +124,8 @@ Open the printed localhost URL, usually:
 ```text
 http://127.0.0.1:4173/preview.html
 ```
+
+Those three browser actions only work in that guided localhost review session. If you open `.webcrawler/<brand-id>/preview.html` directly from disk, or you generated the preview with `preview-brand.sh`, the UI stays in preview-only mode and only `Copy overrides.json` remains active by design.
 
 The review UI is organized like this:
 

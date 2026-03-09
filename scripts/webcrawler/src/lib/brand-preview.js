@@ -836,16 +836,16 @@ export function buildBrandPreviewHtml(analysis) {
             <p>The payload below records the current slot selection shown in this preview. The numbers are indices from <code>page.json.images[]</code>.</p>
           </div>
           <div class="section-tools">
-            <button type="button" class="button button-secondary is-hidden" id="save-overrides">Save overrides.json</button>
-            <button type="button" class="button button-secondary is-hidden" id="regenerate-preview">Regenerate preview</button>
-            <button type="button" class="button button-ghost is-hidden" id="apply-brand">Apply to storefront</button>
+            <button type="button" class="button button-secondary" id="save-overrides" disabled>Save overrides.json</button>
+            <button type="button" class="button button-secondary" id="regenerate-preview" disabled>Regenerate preview</button>
+            <button type="button" class="button button-ghost" id="apply-brand" disabled>Apply to storefront</button>
             <button type="button" class="button" id="copy-overrides">Copy overrides.json</button>
           </div>
         </div>
         <div class="textarea-wrap">
           <textarea class="overrides-textarea" id="overrides-json" readonly>${escapeHtml(initialOverridesJson)}</textarea>
           <div class="status-line" id="status-line">Activate a slot, then choose a candidate family or a specific variation.</div>
-          <div class="status-line is-hidden" id="review-mode-line"></div>
+          <div class="status-line" id="review-mode-line">Preview-only mode. Save, regenerate, and apply are enabled only when this page is opened from the localhost URL started by <code>start-brand-review.sh</code>.</div>
         </div>
       </section>
 
@@ -1440,13 +1440,15 @@ export function buildBrandPreviewHtml(analysis) {
             reviewSession = await requestJson('/api/session');
           } catch (_error) {
             reviewSession = null;
+            reviewModeLine.classList.add('warning');
+            reviewModeLine.textContent = 'Preview-only mode. Save, regenerate, and apply are enabled only when this page is opened from the localhost URL started by start-brand-review.sh. If you opened preview.html directly or used preview-brand.sh, copy overrides.json and continue from the terminal.';
             return;
           }
 
-          setElementHidden(saveOverridesButton, false);
-          setElementHidden(regeneratePreviewButton, false);
-          setElementHidden(applyBrandButton, false);
-          setElementHidden(reviewModeLine, false);
+          saveOverridesButton.disabled = false;
+          regeneratePreviewButton.disabled = false;
+          applyBrandButton.disabled = false;
+          reviewModeLine.classList.remove('warning');
           reviewModeLine.textContent = 'Live review session connected. Save overrides, regenerate the proposal, or apply the approved brand directly from this page.';
         }
 

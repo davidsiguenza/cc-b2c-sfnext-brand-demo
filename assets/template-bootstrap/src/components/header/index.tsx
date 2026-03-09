@@ -45,7 +45,7 @@ export default function Header({ children }: PropsWithChildren): ReactElement {
                                 src={logoSrc}
                                 alt={brand.logoAlt}
                                 className="block w-auto max-w-full shrink-0 object-contain"
-                                style={{ maxHeight: '100px' }}
+                                style={{ height: '48px', maxHeight: '100px' }}
                                 onError={() => setShowLogoImage(false)}
                             />
                         ) : (
