@@ -14,23 +14,29 @@
  * limitations under the License.
  */
 import { type LoaderFunctionArgs } from 'react-router';
-import type { ShopperExperience, ShopperProducts, ShopperSearch } from '@salesforce/storefront-next-runtime/scapi';
+import type { ShopperProducts, ShopperSearch } from '@salesforce/storefront-next-runtime/scapi';
 import { fetchSearchProducts } from '@/lib/api/search';
 import { fetchCategories } from '@/lib/api/categories';
 import { currencyContext } from '@/lib/currency';
 import { Region } from '@/components/region';
 import PopularCategories from '@/components/home/popular-categories';
 import ContentCard from '@/components/content-card';
+import { getConfig, useConfig } from '@salesforce/storefront-next-runtime/config';
+import type { AppConfig } from '@/types/config';
+import { getBrandingPreset } from '@/config/branding-presets';
 import { Button } from '@/components/ui/button';
-import { getConfig, useConfig } from '@/config';
 import { PageType } from '@/lib/decorators/page-type';
 import { RegionDefinition } from '@/lib/decorators/region-definition';
 
-import { collectComponentDataPromises, fetchPageFromLoader } from '@/lib/util/pageLoader';
+import { fetchPageWithComponentData, type PageWithComponentData } from '@/lib/util/pageLoader';
+import { getLogger } from '@/lib/logger.server';
 
+import hero01 from '/images/hero-01.webp';
 import HeroCarousel, { HeroCarouselSkeleton, type HeroSlide } from '@/components/hero-carousel';
 import { ProductCarouselSkeleton, ProductCarouselWithSuspense } from '@/components/product-carousel';
-import { getBrandingPreset } from '@/config/branding-presets';
+import { SeoMeta } from '@/components/seo-meta';
+import { buildCanonicalUrl } from '@/utils/canonical-url';
+import { useTranslation } from 'react-i18next';
 
 @PageType({
     name: 'Home Page',
@@ -54,10 +60,11 @@ import { getBrandingPreset } from '@/config/branding-presets';
 export class HomePageMetadata {}
 
 export type HomePageData = {
-    page: Promise<ShopperExperience.schemas['Page']>;
+    page: Promise<PageWithComponentData>;
     searchResult: Promise<ShopperSearch.schemas['ProductSearchResult']>;
     categories: Promise<ShopperProducts.schemas['Category'][]>;
-    componentData: Promise<Record<string, Promise<unknown>>>;
+    pageUrl: string;
+    ogImageUrl: string;
 };
 
 /**
@@ -67,20 +74,25 @@ export type HomePageData = {
  */
 // eslint-disable-next-line react-refresh/only-export-components
 export function loader(args: LoaderFunctionArgs): HomePageData {
+    const logger = getLogger(args.context);
+    logger.debug('HomePage: loader starting');
+
     const currency = args.context.get(currencyContext) as string;
-    const pagePromise = fetchPageFromLoader(args, {
-        pageId: 'homepage',
-    });
+    const requestUrl = new URL(args.request.url);
+    const pageUrl = buildCanonicalUrl(requestUrl.origin, requestUrl.pathname, requestUrl.search);
 
     return {
-        page: pagePromise,
+        page: fetchPageWithComponentData(args, {
+            pageId: 'homepage',
+        }),
         searchResult: fetchSearchProducts(args.context, {
-            categoryId: 'root',
-            limit: getConfig(args.context).pages.home.featuredProductsCount,
+            refine: ['cgid=root'],
+            limit: getConfig<AppConfig>(args.context).pages.home.featuredProductsCount,
             currency: currency ?? undefined,
         }),
         categories: fetchCategories(args.context, 'root', 1),
-        componentData: collectComponentDataPromises(args, pagePromise),
+        pageUrl,
+        ogImageUrl: new URL(hero01, requestUrl.origin).href,
     };
 }
 
@@ -90,9 +102,11 @@ export function loader(args: LoaderFunctionArgs): HomePageData {
  * @returns JSX element representing the home page layout
  */
 export default function HomePage({ loaderData }: { loaderData: HomePageData }) {
-    const config = useConfig();
+    const { t } = useTranslation('home');
+    const config = useConfig<AppConfig>();
     const brand = getBrandingPreset(config.global.branding.name);
     const c = brand.content;
+    const slide4 = c.hero.slide4 ?? c.hero.slide3;
 
     const heroSlides: HeroSlide[] = [
         {
@@ -122,18 +136,37 @@ export default function HomePage({ loaderData }: { loaderData: HomePageData }) {
             ctaText: c.hero.slide3.ctaText,
             ctaLink: c.hero.slide3.ctaLink,
         },
+        {
+            id: 'slide-4',
+            title: slide4.title,
+            subtitle: slide4.subtitle,
+            imageUrl: slide4.imageUrl,
+            imageAlt: slide4.imageAlt,
+            ctaText: slide4.ctaText,
+            ctaLink: slide4.ctaLink,
+        },
     ];
 
     return (
         <div className="pb-16 -mt-8">
+            <SeoMeta
+                rawTitle
+                title={c.pageTitle}
+                description={c.pageDescription}
+                openGraph={{
+                    type: 'website',
+                    url: loaderData.pageUrl,
+                    image: loaderData.ogImageUrl,
+                }}
+            />
             {/* Header Banner Region - Region component handles its own Suspense internally */}
             <div>
                 <Region
                     page={loaderData.page}
                     regionId="headerbanner"
-                    componentData={loaderData.componentData}
                     fallbackElement={
                         <>
+                            {/* Provide fallback skeletons for the above the fold content */}
                             <HeroCarouselSkeleton showDots={true} showNavigation={true} />
                             <ProductCarouselSkeleton title={c.featuredProducts.title} />
                         </>
@@ -148,16 +181,19 @@ export default function HomePage({ loaderData }: { loaderData: HomePageData }) {
                                 showDots={true}
                             />
 
+                            {/* Featured Products - ProductCarouselWithSuspense handles its own Suspense */}
                             <ProductCarouselWithSuspense
                                 resolve={loaderData.searchResult}
                                 title={c.featuredProducts.title}
+                                shopAllUrl="/category/root"
+                                shopAllText={t('featuredProducts.shopAll')}
                             />
                         </>
                     }
                 />
             </div>
 
-            {/* New Arrivals */}
+            {/* New Arrivals — driven by branding preset (storefront-branding apply workflow) */}
             <div className="pt-16">
                 <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center rounded-2xl overflow-hidden">
@@ -175,27 +211,27 @@ export default function HomePage({ loaderData }: { loaderData: HomePageData }) {
                             </h2>
                             <p className="text-lg text-muted-foreground mb-6">{c.newArrivals.description}</p>
                             <Button size="lg" asChild>
-                                <a href={c.newArrivals.ctaLink ?? '/category/newarrivals'}>
-                                    {c.newArrivals.ctaText}
-                                </a>
+                                <a href={c.newArrivals.ctaLink ?? '/category/newarrivals'}>{c.newArrivals.ctaText}</a>
                             </Button>
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* Main Region */}
-            <div className="pt-16">
-                <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <Region
-                        page={loaderData.page}
-                        regionId="main"
-                        componentData={loaderData.componentData}
-                        errorElement={
-                            <>
-                                <PopularCategories categoriesPromise={loaderData.categories} />
+            {/* Main Region - Region component handles its own Suspense internally */}
+            {/* Note: This region doesn't provide fallback skeletons right now as it's located below the fold */}
+            <Region
+                page={loaderData.page}
+                regionId="main"
+                errorElement={
+                    <>
+                        {/* Popular Categories - full-width section with its own gray bg and container */}
+                        <PopularCategories categoriesPromise={loaderData.categories} />
 
-                                <div className="pt-16 grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Featured Content Cards - Static content */}
+                        <div className="pt-16">
+                            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <ContentCard
                                         title={c.featuredContent.women.title}
                                         description={c.featuredContent.women.description}
@@ -219,11 +255,24 @@ export default function HomePage({ loaderData }: { loaderData: HomePageData }) {
                                         loading="lazy"
                                     />
                                 </div>
-                            </>
-                        }
-                    />
-                </div>
-            </div>
+
+                                {/* Text-only card below women/men cards */}
+                                <div className="mt-16 max-w-4xl mx-auto layout-gutter text-center">
+                                    <ContentCard
+                                        title={t('featuredContent.styleForRealLife.title')}
+                                        description={t('featuredContent.styleForRealLife.description')}
+                                        showBackground={false}
+                                        showBorder={false}
+                                        cardFooterClassName="items-center text-center p-0"
+                                        cardDescriptionClassName="text-center"
+                                        className="[&_h3]:text-3xl [&_h3]:md:text-4xl [&_h3]:font-normal [&_h3]:text-brand-black [&_h3]:mb-6 [&_h3]:tracking-tight [&_p]:text-lg [&_p]:text-brand-gray-700 [&_p]:leading-relaxed [&_p]:font-normal [&_p:last-of-type]:text-base [&_p:last-of-type]:text-brand-gray-600"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    </>
+                }
+            />
         </div>
     );
 }

@@ -14,10 +14,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TARGET_DIR="$(pwd)"
 OUTPUT_DIR="${TARGET_DIR}/.webcrawler/${BRAND_ID}"
 DEFAULT_OVERRIDES="${OUTPUT_DIR}/overrides.json"
-EXTRA_ARGS=("$@")
 HAS_OVERRIDES=0
 
-for arg in "${EXTRA_ARGS[@]}"; do
+# Iterate remaining positional args (do not use "${arr[@]}" on an empty array with `set -u`).
+for arg; do
   case "${arg}" in
     --overrides|--overrides=*)
       HAS_OVERRIDES=1
@@ -25,6 +25,8 @@ for arg in "${EXTRA_ARGS[@]}"; do
       ;;
   esac
 done
+
+EXTRA_ARGS=("$@")
 
 mkdir -p "${OUTPUT_DIR}"
 if [ ! -f "${DEFAULT_OVERRIDES}" ]; then
@@ -35,8 +37,28 @@ if [ "${HAS_OVERRIDES}" -eq 0 ]; then
   EXTRA_ARGS+=(--overrides "${DEFAULT_OVERRIDES}")
 fi
 
+# JSON goes to stdout only (start-brand-review parses it). Hints go to stderr.
+set +e
 "${SCRIPT_DIR}/webcrawler/scripts/run-webcrawler.sh" brand \
   "${URL}" \
   --brand-id "${BRAND_ID}" \
   --out-dir "${OUTPUT_DIR}" \
   "${EXTRA_ARGS[@]}"
+exit_code=$?
+set -e
+
+if [ "${exit_code}" -eq 0 ] && [ -z "${STOREFRONT_BRANDING_REVIEW_SESSION:-}" ]; then
+  cat >&2 <<EOF
+
+---
+Preview files were written (see JSON above). This script does not start a server.
+
+  Full review UI (Save overrides, Regenerate, Apply to storefront):
+    ./.agents/skills/storefront-branding/scripts/start-brand-review.sh "${URL}" "${BRAND_ID}"
+
+  Or open the generated page locally (preview-only; limited actions):
+    ${OUTPUT_DIR}/preview.html
+EOF
+fi
+
+exit "${exit_code}"

@@ -104,9 +104,15 @@ function safeUrlPathname(value) {
   }
 }
 
+/** Matches a BRANDING_PRESETS entry key: 'id', "id", or a valid bare identifier. */
+function presetKeyMatcher(brandId) {
+  const escaped = escapeRegExp(brandId);
+  return `(?:'${escaped}'|"${escaped}"|${escaped})`;
+}
+
 async function patchBrandingPresets(filePath, brandId, presetEntry, options) {
   let source = await readTextFile(filePath);
-  const existsPattern = new RegExp(`\\b${escapeRegExp(brandId)}\\s*:`, 'm');
+  const existsPattern = new RegExp(`${presetKeyMatcher(brandId)}\\s*:`, 'm');
   const exportPattern =
     /(export\s+const\s+BRANDING_PRESETS(?:\s*:\s*[^=]+)?\s*=\s*{)([\s\S]*?)(\n};)/;
 
@@ -162,7 +168,7 @@ async function patchEnv(filePath, envLine) {
 }
 
 function replaceObjectEntry(source, brandId, presetEntry) {
-  const startPattern = new RegExp(`(^\\s*${escapeRegExp(brandId)}\\s*:\\s*{)`, 'm');
+  const startPattern = new RegExp(`(^\\s*${presetKeyMatcher(brandId)}\\s*:\\s*{)`, 'm');
   const startMatch = startPattern.exec(source);
 
   if (!startMatch) {

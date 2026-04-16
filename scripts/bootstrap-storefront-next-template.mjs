@@ -32,7 +32,7 @@ if (wantsHelp) {
 
 const fileMappings = [
     ['src/config/branding-presets.ts', 'src/config/branding-presets.ts'],
-    ['src/routes/home-page.tsx', 'src/routes/_app._index.tsx'],
+    ['src/routes/_app._index.tsx', 'src/routes/_app._index.tsx'],
     ['src/components/header/index.tsx', 'src/components/header/index.tsx'],
     ['src/root.tsx', 'src/root.tsx'],
     ['src/app.css', 'src/app.css'],
@@ -141,20 +141,20 @@ async function inspectStockTemplate(targetPath) {
         },
         {
             file: 'src/routes/_app._index.tsx',
-            assetRelative: 'src/routes/home-page.tsx',
-            patterns: [/useTranslation\('home'\)/, /hero-cube\.webp/, /new-arrivals\.webp/],
+            assetRelative: 'src/routes/_app._index.tsx',
+            patterns: [/useTranslation\('home'\)/, /fetchPageWithComponentData/, /hero-01\.webp/],
             forbidden: [/getBrandingPreset/, /useConfig\(/],
         },
         {
             file: 'src/components/header/index.tsx',
             assetRelative: 'src/components/header/index.tsx',
-            patterns: [/useTranslation\('header'\)/, /market-logo\.svg/],
-            forbidden: [/getBrandImagePath/, /useConfig\(/],
+            patterns: [/useTranslation\('header'\)/, /\/images\/logo\.svg/],
+            forbidden: [/getBrandImagePath/, /getBrandingPreset/],
         },
         {
             file: 'src/root.tsx',
             assetRelative: 'src/root.tsx',
-            patterns: [/NextGen PWA Kit Store/, /Welcome to our web store for high performers!/],
+            patterns: [/buildSeoMetaDescriptors/, /seoMeta/],
             forbidden: [/BRANDING_PRESETS/, /data-brand=\{brandId\}/],
         },
         {

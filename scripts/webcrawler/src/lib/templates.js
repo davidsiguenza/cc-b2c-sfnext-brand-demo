@@ -36,7 +36,9 @@ export function buildPresetEntry(analysis) {
     content: analysis.content,
   };
 
-  return `${analysis.brandId}: ${renderValue(preset, 1)},`;
+  // Quote key so brand ids like "mi-marca" remain valid JavaScript object keys.
+  const presetKey = JSON.stringify(String(analysis.brandId));
+  return `${presetKey}: ${renderValue(preset, 1)},`;
 }
 
 export function buildCssBlock(analysis) {

@@ -2,6 +2,8 @@
 
 Guided review-first branding workflow for Storefront Next storefronts.
 
+**Template compatibility:** this tree is aligned with **Storefront Next v0.3.x** (runtime `0.3.0`). For a concise list of differences from the original v0.2-oriented bootstrap and what to merge upstream, see [STOREFRONT-NEXT-V0.3.md](./STOREFRONT-NEXT-V0.3.md).
+
 This skill lets you:
 
 - scrape a customer site and generate a proposed storefront brand
@@ -126,6 +128,8 @@ http://127.0.0.1:4173/preview.html
 ```
 
 Those three browser actions only work in that guided localhost review session. If you open `.webcrawler/<brand-id>/preview.html` directly from disk, or you generated the preview with `preview-brand.sh`, the UI stays in preview-only mode and only `Copy overrides.json` remains active by design.
+
+**`preview-brand.sh` vs `start-brand-review.sh`:** `preview-brand.sh` only runs the crawler and writes files under `.webcrawler/<brand-id>/`; it prints JSON to stdout and **does not start a web server**. To get the interactive review server and the full UI, use `start-brand-review.sh` (it runs the same generation step, then listens on a local port, usually `http://127.0.0.1:4173/preview.html`).
 
 The review UI is organized like this:
 

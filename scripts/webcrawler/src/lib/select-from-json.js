@@ -464,6 +464,8 @@ function buildContent({ assignments, metadata, pageUrl, displayName }) {
       slide1,
       slide2,
       slide3,
+      // Storefront Next v0.3 home uses four hero slides; generated runs only assign three slots.
+      slide4: { ...slide3 },
     },
     featuredProducts: { title: DEFAULTS.featuredProductsTitle },
     newArrivals: {

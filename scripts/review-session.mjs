@@ -209,7 +209,7 @@ function runScript(command, args, options) {
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, {
       cwd: options.cwd,
-      env: process.env,
+      env: { ...process.env, STOREFRONT_BRANDING_REVIEW_SESSION: '1' },
       stdio: ['ignore', 'pipe', 'pipe'],
     });
 

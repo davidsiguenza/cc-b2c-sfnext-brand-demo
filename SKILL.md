@@ -9,6 +9,8 @@ description: Guided review-first branded demo workflow for Storefront Next store
 
 Use this skill to run the branded demo flow for a Storefront Next project and to bootstrap the branding hooks when the target repo is still a clean template.
 
+**Compatibility:** target **Storefront Next v0.3.x** (see `STOREFRONT-NEXT-V0.3.md` in this skill for upstream merge notes vs. v0.2).
+
 This skill is self-contained:
 
 - `scripts/webcrawler/` vendors the crawler/runtime used by the preview and apply flow. If `node_modules` is absent, `scripts/webcrawler/scripts/run-webcrawler.sh` installs the pinned dependency set from `package-lock.json` on first run.
